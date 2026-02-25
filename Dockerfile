@@ -8,8 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-COPY .env .env
-
 EXPOSE 5002
 
-CMD ["gunicorn", "-b", "0.0.0.0:5002", "wsgi:app", "--reload"]
+CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT:-5002} wsgi:app"]
