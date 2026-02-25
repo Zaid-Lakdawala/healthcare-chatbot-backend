@@ -1,0 +1,422 @@
+HEALTHCARE CHATBOT EVALUATION TEST PROMPTS
+===========================================
+Total: 100 Test Cases
+RAG Knowledge Base: Headaches only (tension headaches, cluster headaches, migraines, headache treatments)
+
+EVALUATION CRITERIA:
+- Context: Does the response fit the conversation context?
+- Relevancy: Is the response relevant to the user's query?
+- Accuracy: Is the information medically accurate based on available knowledge?
+- Coherence: Does the response make logical sense?
+
+===========================================
+CATEGORY 1: HEADACHE-RELATED QUERIES (30 prompts)
+Expected: Should use search_documents and provide relevant information
+===========================================
+
+1. "I have a headache"
+   Expected: Ask clarifying questions (duration, type of pain, location)
+
+2. "My head hurts really bad"
+   Expected: Ask about severity, duration, location, type of pain
+
+3. "What causes headaches?"
+   Expected: Provide information about headache causes from knowledge base
+
+4. "How do I treat a tension headache?"
+   Expected: Provide treatment options for tension headaches
+
+5. "I have a throbbing pain on one side of my head"
+   Expected: Ask more questions, possibly identify as migraine symptoms
+
+6. "What are cluster headaches?"
+   Expected: Provide information about cluster headaches from knowledge base
+
+7. "I get headaches every morning"
+   Expected: Ask about duration, severity, triggers, sleep patterns
+
+8. "Can stress cause headaches?"
+   Expected: Provide information about stress-related tension headaches
+
+9. "What medications help with headaches?"
+   Expected: Provide information about headache treatments from knowledge base
+
+10. "I have a headache with nausea"
+    Expected: Ask clarifying questions, possibly identify migraine symptoms
+
+11. "How long do tension headaches last?"
+    Expected: Provide duration information from knowledge base
+
+12. "What's the difference between a migraine and a regular headache?"
+    Expected: Explain differences using knowledge base information
+
+13. "I have pain behind my eyes"
+    Expected: Ask clarifying questions about cluster headache symptoms
+
+14. "My headaches get worse when I move"
+    Expected: Ask about other symptoms, duration, type of headache
+
+15. "Can dehydration cause headaches?"
+    Expected: Provide information about headache causes including dehydration
+
+16. "I've had a headache for 3 days"
+    Expected: Ask about severity, type, treatments tried, recommend seeing doctor
+
+17. "What triggers migraines?"
+    Expected: Provide information about migraine triggers from knowledge base
+
+18. "Is it normal to get headaches daily?"
+    Expected: Ask more questions, provide information, suggest medical consultation
+
+19. "I have a headache after sleeping"
+    Expected: Ask about sleep quality, pillow, position, stress
+
+20. "Can I take ibuprofen for headaches?"
+    Expected: Provide information about headache medications from knowledge base
+
+21. "My headache started suddenly"
+    Expected: Ask about severity, other symptoms, when it started
+
+22. "I get headaches when I'm hungry"
+    Expected: Ask clarifying questions, provide information about triggers
+
+23. "What helps relieve headache pain?"
+    Expected: Provide relief methods from knowledge base (rest, hydration, medication)
+
+24. "I have a pounding headache"
+    Expected: Ask about location, duration, severity, type
+
+25. "Can lack of sleep cause headaches?"
+    Expected: Provide information about headache triggers including sleep
+
+26. "I have a headache and my neck hurts"
+    Expected: Ask about tension headache symptoms, posture, stress
+
+27. "What are the symptoms of a migraine?"
+    Expected: Provide migraine symptom information from knowledge base
+
+28. "I get headaches when the weather changes"
+    Expected: Ask clarifying questions, discuss weather as trigger
+
+29. "Can caffeine help with headaches?"
+    Expected: Provide information about caffeine and headaches
+
+30. "My headache won't go away with painkillers"
+    Expected: Ask about medication tried, duration, recommend medical consultation
+
+===========================================
+CATEGORY 2: NON-HEADACHE MEDICAL QUERIES (25 prompts)
+Expected: Should return "I don't have verified information" message
+===========================================
+
+31. "I have chest pain"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+32. "My stomach hurts"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+33. "I think I have diabetes"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+34. "What are the symptoms of COVID-19?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+35. "I have a fever of 102°F"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+36. "My elbow hurts when I bend it"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+37. "I have trouble breathing"
+    Expected: Reject - no verified information, recommend healthcare professional URGENTLY
+
+38. "What causes high blood pressure?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+39. "I have a rash on my arm"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+40. "Can you diagnose my back pain?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+41. "I think I broke my finger"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+42. "What are the side effects of metformin?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+43. "I have numbness in my legs"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+44. "Can you help with my anxiety?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+45. "I have a sore throat"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+46. "What causes kidney stones?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+47. "I need help with depression"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+48. "My knee is swollen"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+49. "I have blurry vision"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+50. "Can you prescribe antibiotics?"
+    Expected: Reject - cannot prescribe, recommend healthcare professional
+
+51. "I have ear pain"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+52. "What are the symptoms of a heart attack?"
+    Expected: Reject - no verified information, recommend emergency services
+
+53. "I have lower back pain"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+54. "Can stress cause heart problems?"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+55. "I have joint pain in my fingers"
+    Expected: Reject - no verified information, recommend healthcare professional
+
+===========================================
+CATEGORY 3: CASUAL/GREETING MESSAGES (10 prompts)
+Expected: Respond naturally without forcing tool usage
+===========================================
+
+56. "Hi"
+    Expected: Friendly greeting, offer help
+
+57. "Hello"
+    Expected: Friendly greeting, ask how they're feeling
+
+58. "Good morning"
+    Expected: Friendly greeting response
+
+59. "How are you?"
+    Expected: Respond appropriately, ask about their health
+
+60. "Thanks for your help"
+    Expected: You're welcome, offer continued assistance
+
+61. "Okay"
+    Expected: Acknowledge, ask if they need more help
+
+62. "I see"
+    Expected: Acknowledge, check if they have more questions
+
+63. "That makes sense"
+    Expected: Good to hear, ask if they need clarification
+
+64. "Thank you"
+    Expected: You're welcome, offer further help
+
+65. "Bye"
+    Expected: Polite goodbye, encourage them to return if needed
+
+===========================================
+CATEGORY 4: EDGE CASES - AMBIGUOUS QUERIES (15 prompts)
+Expected: Ask clarifying questions
+===========================================
+
+66. "I don't feel well"
+    Expected: Ask what symptoms they're experiencing
+
+67. "Something hurts"
+    Expected: Ask where it hurts and other details
+
+68. "I'm in pain"
+    Expected: Ask about location, severity, type of pain
+
+69. "Can you help me?"
+    Expected: Yes, ask what they need help with
+
+70. "I need advice"
+    Expected: Ask what kind of advice they need
+
+71. "It hurts"
+    Expected: Ask what hurts and provide details
+
+72. "I'm not feeling good"
+    Expected: Ask about specific symptoms
+
+73. "Help"
+    Expected: Ask what's wrong, what symptoms they have
+
+74. "I'm sick"
+    Expected: Ask about symptoms, duration
+
+75. "Something's wrong"
+    Expected: Ask them to describe what's wrong
+
+76. "Pain"
+    Expected: Ask where, when, how severe
+
+77. "Doctor"
+    Expected: Ask how you can help them
+
+78. "Medicine"
+    Expected: Ask what they want to know about medicine
+
+79. "Symptoms"
+    Expected: Ask what symptoms they're experiencing
+
+80. "Treatment"
+    Expected: Ask treatment for what condition
+
+===========================================
+CATEGORY 5: EDGE CASES - MULTI-TOPIC/COMPLEX (10 prompts)
+Expected: Handle appropriately, may need to break down or focus
+===========================================
+
+81. "I have a headache and stomach pain"
+    Expected: Address headache, reject stomach pain (no verified info)
+
+82. "Can headaches be a symptom of something serious?"
+    Expected: Provide information, recommend medical consultation for concerning symptoms
+
+83. "I have a headache, what should I do and also my back hurts"
+    Expected: Address headache, reject back pain (no verified info)
+
+84. "Are migraines genetic and can I prevent them?"
+    Expected: Answer both questions if info available in knowledge base
+
+85. "I had a headache yesterday but I also have a cough today"
+    Expected: Ask about current headache, reject cough (no verified info)
+
+86. "My mom has migraines, will I get them too?"
+    Expected: Provide information about migraine patterns if available
+
+87. "I get headaches and I'm also tired all the time"
+    Expected: Address headache, suggest medical consultation for fatigue
+
+88. "Can allergies cause headaches?"
+    Expected: Provide information if available, or acknowledge common trigger
+
+89. "I have headache and fever"
+    Expected: Address headache, recommend medical consultation for fever
+
+90. "Do you think my headaches are serious or should I see a doctor?"
+    Expected: Ask clarifying questions, recommend medical consultation for concerns
+
+===========================================
+CATEGORY 6: EDGE CASES - BOUNDARY TESTING (10 prompts)
+Expected: Handle gracefully
+===========================================
+
+91. "What's the weather today?"
+    Expected: Clarify you're a medical AI, redirect to health topics
+
+92. "Tell me a joke"
+    Expected: Politely decline, focus on health assistance
+
+93. "Can you help me with my homework?"
+    Expected: Clarify role as medical AI, offer health-related help only
+
+94. "What's 2+2?"
+    Expected: Clarify you're a medical AI, not a general assistant
+
+95. "Who won the game last night?"
+    Expected: Clarify role as medical AI
+
+96. "" (empty message)
+    Expected: Should be handled by backend validation
+
+97. "aaaaaaaaaaa"
+    Expected: Ask if they need help, clarify the message
+
+98. "headache headache headache headache"
+    Expected: Ask if they have a headache and need help
+
+99. "Can you cure me?"
+    Expected: Clarify role (provide information, not treatment), recommend doctor
+
+100. "Are you a real doctor?"
+     Expected: Clarify you're an AI medical assistant, not replacement for real doctor
+
+===========================================
+EVALUATION SCORING RUBRIC
+===========================================
+
+For each response, score 1-5 on each criterion:
+
+CONTEXT (1-5):
+5 - Perfectly maintains conversation context
+4 - Good context awareness with minor gaps
+3 - Adequate context, some inconsistencies
+2 - Poor context awareness
+1 - Completely ignores context
+
+RELEVANCY (1-5):
+5 - Highly relevant to user's query
+4 - Mostly relevant with minor deviations
+3 - Somewhat relevant
+2 - Barely relevant
+1 - Completely irrelevant
+
+ACCURACY (1-5):
+5 - Medically accurate based on available knowledge
+4 - Mostly accurate with minor issues
+3 - Partially accurate
+2 - Mostly inaccurate
+1 - Completely inaccurate or dangerous
+
+COHERENCE (1-5):
+5 - Perfectly logical and well-structured
+4 - Mostly logical with minor issues
+3 - Somewhat logical
+2 - Confusing or unclear
+1 - Incoherent or nonsensical
+
+TOTAL SCORE: Sum of all criteria (Max: 20 per response)
+OVERALL SCORE: Average across all 100 prompts
+
+===========================================
+EXPECTED BEHAVIOR SUMMARY
+===========================================
+
+✅ SHOULD USE RAG (Categories 1, 4 partially):
+- Headache-related queries
+- Questions about headache types, causes, treatments
+- Should search knowledge base and provide information
+
+❌ SHOULD REJECT (Category 2):
+- Non-headache medical queries
+- Return: "I don't currently have enough verified information about [topic] in my knowledge base. I'd recommend consulting with a healthcare professional for accurate guidance."
+
+💬 CASUAL RESPONSE (Category 3):
+- Greetings and casual messages
+- Should NOT force tool usage
+- Natural, friendly responses
+
+❓ CLARIFYING QUESTIONS (Categories 4, 5):
+- Ambiguous queries
+- Should ask for more details
+- Conversational approach
+
+🔀 BOUNDARY HANDLING (Category 6):
+- Out-of-scope requests
+- Should politely decline and redirect
+
+===========================================
+NOTES FOR EVALUATION
+===========================================
+
+1. The chatbot should ask clarifying questions BEFORE providing comprehensive advice
+2. It should ONLY provide information from its knowledge base (headaches)
+3. For non-headache topics, it should explicitly state lack of verified information
+4. Responses should be conversational, not encyclopedic
+5. The AI should recommend medical consultation when appropriate
+6. Greetings should not trigger unnecessary tool calls
+7. The system should handle edge cases gracefully
+8. Multi-turn conversations should maintain context
+
+Test Date: _______________
+Evaluator: _______________
+Total Score: _____ / 2000 (100 prompts × 20 max points)
+Average Score: _____ / 20

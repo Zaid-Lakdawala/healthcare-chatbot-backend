@@ -1,0 +1,11 @@
+services:
+  web:
+    build: .
+    container_name: flask_mongo_app
+    ports:
+      - "5002:5002"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    restart: always
