@@ -23,11 +23,13 @@ def create_app():
     from app.routes.chat_routes import chat_bp
     from app.routes.admin_routes import admin_bp
     from app.routes.documents_routes import documents_bp
+    from app.routes.consultation_routes import consultation_bp
     
     app.register_blueprint(user_bp, url_prefix="/users")
     app.register_blueprint(chat_bp, url_prefix="/chat")
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(documents_bp, url_prefix="/documents")
+    app.register_blueprint(consultation_bp, url_prefix="/consultations")
 
     @app.route('/')
     def home():

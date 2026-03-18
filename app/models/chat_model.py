@@ -14,6 +14,10 @@ class ChatModel:
             "title": title,
             "messages": [],
             "ended": False,
+            "summary": None,
+            "summary_created_at": None,
+            "escalation_pending_consent": False,
+            "escalation_suggested_severity": None,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
         }
@@ -127,4 +131,63 @@ class ChatModel:
             return result.modified_count > 0
         except Exception as e:
             print(f"Error ending conversation: {e}")
+            return False
+
+    @staticmethod
+    def get_conversation_summary(conversation_id):
+        """Get summary fields for a conversation"""
+        try:
+            conversation = ChatModel.collection.find_one(
+                {"_id": ObjectId(conversation_id)},
+                {
+                    "user_id": 1,
+                    "summary": 1,
+                    "summary_created_at": 1,
+                },
+            )
+
+            if conversation:
+                conversation["_id"] = str(conversation["_id"])
+
+            return conversation
+        except Exception as e:
+            print(f"Error getting conversation summary: {e}")
+            return None
+
+    @staticmethod
+    def set_conversation_summary(conversation_id, summary_text):
+        """Store summary and timestamp for a conversation"""
+        try:
+            now = datetime.now(timezone.utc)
+            result = ChatModel.collection.update_one(
+                {"_id": ObjectId(conversation_id)},
+                {
+                    "$set": {
+                        "summary": summary_text,
+                        "summary_created_at": now,
+                        "updated_at": now,
+                    }
+                },
+            )
+            return result.matched_count > 0
+        except Exception as e:
+            print(f"Error setting conversation summary: {e}")
+            return False
+
+    @staticmethod
+    def set_escalation_state(conversation_id, pending, severity=None):
+        try:
+            result = ChatModel.collection.update_one(
+                {"_id": ObjectId(conversation_id)},
+                {
+                    "$set": {
+                        "escalation_pending_consent": bool(pending),
+                        "escalation_suggested_severity": severity if pending else None,
+                        "updated_at": datetime.now(timezone.utc),
+                    }
+                },
+            )
+            return result.matched_count > 0
+        except Exception as e:
+            print(f"Error setting escalation state: {e}")
             return False

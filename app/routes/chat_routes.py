@@ -3,18 +3,165 @@ from flask import Blueprint, request, jsonify
 from app.models.chat_model import ChatModel
 from app.models.user_model import UserModel
 from app.models.memory_model import MemoryModel
+from app.models.consultation_request_model import ConsultationRequestModel
 from app.utils.auth import token_required
 from app.utils.embed_service import EmbedService
 from app.utils.qdrant_service import QdrantService
 from marshmallow import ValidationError
 from datetime import datetime, timezone
 from openai import OpenAI
+from hashlib import sha256
 import os
 import json
 from concurrent.futures import ThreadPoolExecutor
 
 chat_bp = Blueprint("chat_bp", __name__)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+HIGH_RISK_KEYWORDS = {
+    "chest pain": "high",
+    "can't breathe": "high",
+    "cannot breathe": "high",
+    "shortness of breath": "high",
+    "severe headache": "high",
+    "worst headache": "high",
+    "stroke": "high",
+    "fainted": "high",
+    "fainting": "high",
+    "seizure": "high",
+    "suicidal": "high",
+    "blood in vomit": "high",
+    "vomiting blood": "high",
+    "coughing blood": "high",
+}
+
+MEDIUM_RISK_KEYWORDS = {
+    "high fever": "medium",
+    "persistent fever": "medium",
+    "severe pain": "medium",
+    "dizziness": "medium",
+    "palpitations": "medium",
+}
+
+
+def _anonymise_user_id(user_id):
+    return f"anon_{sha256(user_id.encode()).hexdigest()[:12]}"
+
+
+def _has_affirmative_consent(message):
+    normalized = message.strip().lower()
+    positive = [
+        "yes",
+        "yeah",
+        "yep",
+        "i agree",
+        "please do",
+        "go ahead",
+        "ok",
+        "okay",
+        "sure",
+    ]
+    return any(token in normalized for token in positive)
+
+
+def _has_negative_consent(message):
+    normalized = message.strip().lower()
+    negative = ["no", "not now", "later", "don't", "do not"]
+    return any(token in normalized for token in negative)
+
+
+def _assess_escalation_need(user_message):
+    normalized = user_message.lower()
+    for key, severity in HIGH_RISK_KEYWORDS.items():
+        if key in normalized:
+            return True, severity
+
+    for key, severity in MEDIUM_RISK_KEYWORDS.items():
+        if key in normalized:
+            return True, severity
+
+    return False, "low"
+
+
+def _format_conversation_for_summary(messages):
+    """Format assistant/user turns into a compact transcript for summarisation."""
+    transcript_lines = []
+
+    for msg in messages:
+        role = (msg.get("role") or "").strip().lower()
+        content = (msg.get("content") or "").strip()
+
+        if role not in {"user", "assistant"} or not content:
+            continue
+
+        speaker = "Patient" if role == "user" else "Assistant"
+        transcript_lines.append(f"{speaker}: {content}")
+
+    return "\n".join(transcript_lines)
+
+
+def _empty_summary_response():
+    return (
+        "Symptoms\n"
+        "- Not mentioned\n\n"
+        "Possible Causes Discussed\n"
+        "- Not mentioned\n\n"
+        "Advice Given\n"
+        "- Not mentioned\n\n"
+        "Follow-up Suggestions\n"
+        "- Not mentioned\n\n"
+        "Notes\n"
+        "- Conversation did not contain enough information to summarise."
+    )
+
+
+def _generate_conversation_summary(messages):
+    transcript = _format_conversation_for_summary(messages)
+
+    if not transcript:
+        return _empty_summary_response()
+
+    system_prompt = (
+        "You are a clinical documentation assistant for a healthcare chatbot. "
+        "Your job is to summarize only what appears in the conversation transcript. "
+        "Do not add facts that were not discussed. Do not diagnose. Do not provide new treatment plans. "
+        "If a section is not present in the transcript, write 'Not mentioned'.\n\n"
+        "Output format rules:\n"
+        "1) Keep the summary concise and factual.\n"
+        "2) Use these exact headings in this exact order:\n"
+        "   Symptoms\n"
+        "   Possible Causes Discussed\n"
+        "   Advice Given\n"
+        "   Follow-up Suggestions\n"
+        "   Notes\n"
+        "3) Under each heading, provide short bullet points using '-' only.\n"
+        "4) Notes should include uncertainty, escalation advice, or safety notes only if they were discussed."
+    )
+
+    user_prompt = (
+        "Summarize the following healthcare conversation transcript.\n\n"
+        "Transcript:\n"
+        f"{transcript}"
+    )
+
+    summary_response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0.1,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+
+    summary_text = (
+        summary_response.choices[0].message.content
+        if summary_response and summary_response.choices
+        else ""
+    )
+
+    summary_text = (summary_text or "").strip()
+    return summary_text or _empty_summary_response()
 
 @chat_bp.route("", methods=["GET"])
 @token_required
@@ -56,6 +203,97 @@ def get_conversation(current_user, conversation_id):
     return {
         "success": True,
         "conversation": conversation
+    }, 200
+
+
+@chat_bp.route("/<conversation_id>/summary", methods=["GET"])
+@token_required
+def get_conversation_summary(current_user, conversation_id):
+    """Fetch an existing conversation summary without regenerating it."""
+    user = current_user or {}
+    user_id = user.get("user_id")
+
+    if not user_id:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    conversation = ChatModel.get_conversation_summary(conversation_id)
+
+    if not conversation:
+        return {"success": False, "message": "Conversation not found"}, 404
+
+    if conversation.get("user_id") != user_id:
+        return {"success": False, "message": "Unauthorized"}, 403
+
+    summary = conversation.get("summary")
+    if not summary:
+        return {"success": False, "message": "Summary not found"}, 404
+
+    return {
+        "success": True,
+        "summary": {
+            "conversation_id": conversation.get("_id"),
+            "summary": summary,
+            "summary_created_at": conversation.get("summary_created_at"),
+        },
+    }, 200
+
+
+@chat_bp.route("/<conversation_id>/summary", methods=["POST"])
+@token_required
+def generate_conversation_summary(current_user, conversation_id):
+    """Generate and persist a new summary for a conversation."""
+    user = current_user or {}
+    user_id = user.get("user_id")
+
+    if not user_id:
+        return {"success": False, "message": "Unauthorized"}, 401
+
+    conversation = ChatModel.get_conversation(conversation_id)
+
+    if not conversation:
+        return {"success": False, "message": "Conversation not found"}, 404
+
+    if conversation.get("user_id") != user_id:
+        return {"success": False, "message": "Unauthorized"}, 403
+
+    if conversation.get("summary"):
+        return {
+            "success": False,
+            "message": "Summary already exists for this conversation",
+        }, 409
+
+    try:
+        summary_text = _generate_conversation_summary(conversation.get("messages", []))
+    except Exception as e:
+        print(f"Error generating summary: {e}")
+        return {
+            "success": False,
+            "message": "Failed to generate summary",
+        }, 500
+
+    is_saved = ChatModel.set_conversation_summary(conversation_id, summary_text)
+
+    if not is_saved:
+        return {
+            "success": False,
+            "message": "Failed to store summary",
+        }, 500
+
+    updated_summary = ChatModel.get_conversation_summary(conversation_id)
+    if not updated_summary:
+        return {
+            "success": False,
+            "message": "Summary generated but could not be retrieved",
+        }, 500
+
+    return {
+        "success": True,
+        "message": "Summary generated successfully",
+        "summary": {
+            "conversation_id": updated_summary.get("_id"),
+            "summary": updated_summary.get("summary"),
+            "summary_created_at": updated_summary.get("summary_created_at"),
+        },
     }, 200
 
 
@@ -281,6 +519,106 @@ def send_message(current_user, conversation_id):
         
         # 2. Save user message
         ChatModel.append_message(conversation_id, "user", user_message)
+
+        # 2.1 If waiting for consent, interpret user response before normal AI flow.
+        if conversation.get("escalation_pending_consent"):
+            if _has_affirmative_consent(user_message):
+                latest_conversation = ChatModel.get_conversation(conversation_id) or conversation
+                severity = conversation.get("escalation_suggested_severity") or "high"
+
+                existing_open = ConsultationRequestModel.find_open_by_chat(conversation_id)
+                if existing_open:
+                    consultation_payload = {
+                        "id": existing_open.get("_id"),
+                        "status": existing_open.get("status"),
+                        "severity": existing_open.get("severity"),
+                    }
+                    final_message = (
+                        "Thanks for your consent. A doctor consultation request already exists for this case. "
+                        "Please open Doctor Consultation to continue."
+                    )
+                else:
+                    summary_text = _generate_conversation_summary(latest_conversation.get("messages", []))
+
+                    consultation_id = ConsultationRequestModel.create_request(
+                        {
+                            "user_id": _anonymise_user_id(user_id),
+                            "owner_user_id": user_id,
+                            "chat_id": conversation_id,
+                            "summary": summary_text,
+                            "severity": severity,
+                            "status": "pending",
+                            "assigned_doctor_id": None,
+                        }
+                    )
+                    consultation_payload = {
+                        "id": consultation_id,
+                        "status": "pending",
+                        "severity": severity,
+                    }
+                    final_message = (
+                        "Thanks for your consent. I have created a doctor consultation request for you. "
+                        "Please check Doctor Consultation for status updates while a doctor reviews your case."
+                    )
+
+                ChatModel.set_escalation_state(conversation_id, False)
+                ChatModel.append_message(conversation_id, "assistant", final_message)
+
+                updated_conversation = ChatModel.get_conversation(conversation_id)
+                return {
+                    "success": True,
+                    "message": final_message,
+                    "conversation": updated_conversation,
+                    "consultation_request": consultation_payload,
+                }, 200
+
+            if _has_negative_consent(user_message):
+                final_message = (
+                    "Understood. I will continue to support you here. "
+                    "If symptoms worsen, seek urgent in-person medical care immediately."
+                )
+                ChatModel.set_escalation_state(conversation_id, False)
+                ChatModel.append_message(conversation_id, "assistant", final_message)
+
+                updated_conversation = ChatModel.get_conversation(conversation_id)
+                return {
+                    "success": True,
+                    "message": final_message,
+                    "conversation": updated_conversation,
+                }, 200
+
+            follow_up_message = (
+                "I want to make sure this is handled safely. "
+                "Do you consent to creating a doctor consultation request now? Please reply with yes or no."
+            )
+            ChatModel.append_message(conversation_id, "assistant", follow_up_message)
+            updated_conversation = ChatModel.get_conversation(conversation_id)
+            return {
+                "success": True,
+                "message": follow_up_message,
+                "conversation": updated_conversation,
+                "escalation_needed": True,
+            }, 200
+
+        # 2.2 Detect potentially serious symptoms and request consent for doctor escalation.
+        should_escalate, escalated_severity = _assess_escalation_need(user_message)
+        if should_escalate:
+            escalation_message = (
+                "Some of the symptoms you mentioned may need doctor review. "
+                "Would you like me to create a doctor consultation request for you now?"
+            )
+
+            ChatModel.set_escalation_state(conversation_id, True, escalated_severity)
+            ChatModel.append_message(conversation_id, "assistant", escalation_message)
+            updated_conversation = ChatModel.get_conversation(conversation_id)
+
+            return {
+                "success": True,
+                "message": escalation_message,
+                "conversation": updated_conversation,
+                "escalation_needed": True,
+                "severity": escalated_severity,
+            }, 200
         
         # 3. Build initial messages list (for OpenAI)
         all_messages = conversation.get("messages", [])
